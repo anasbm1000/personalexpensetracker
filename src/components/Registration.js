@@ -10,7 +10,7 @@ const Registration = () => {
     age: '',
     gender: '',
     phone: '',
-    countryCode: '',
+    countryCode: '+91',
     email: '',
     place: '',
     district: '',
@@ -43,7 +43,7 @@ const Registration = () => {
         age: '',
         gender: '',
         phone: '',
-        countryCode: '',
+        countryCode: '+91',
         email: '',
         place: '',
         district: '',
@@ -65,8 +65,8 @@ const Registration = () => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setState((prevProfile) => ({
-          ...prevProfile,
+        setState((prevState) => ({
+          ...prevState,
           profilePicture: reader.result,
         }));
       };
@@ -74,9 +74,10 @@ const Registration = () => {
     }
   };
   
+  
   const handleDateChange = (event) => {
     const dob = event.target.value;
-    const age = calculateAge(dob);
+    const age = calculateAge(dob).toString();
     setState({ ...state, dob, age });
   };
 
