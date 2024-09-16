@@ -24,6 +24,7 @@ const Login = () => {
     if (result.success) {
       alert(result.message);
       console.log(result.message);
+      localStorage.setItem("token", result.token);
       localStorage.setItem("userId", result.userId);
       navigate('/Home'); 
       setState({
