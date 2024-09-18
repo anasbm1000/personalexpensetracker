@@ -91,7 +91,7 @@ const Registration = () => {
   return (
     <div className="login-page">
       
-      <div className="form">
+      <div className="loginForm">
       <p className="message">Already registered? <Link to="/">Login Here</Link> </p>
         <form className="login-form" onSubmit={handleSubmit}>
           <input
@@ -221,6 +221,7 @@ const Registration = () => {
           <input 
             type="file" 
             accept="image/*" 
+            
             onChange={handleImageChange} 
           />
           <input 

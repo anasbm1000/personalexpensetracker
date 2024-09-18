@@ -43,7 +43,7 @@ const Login = () => {
 
   return (
     <div className="login-page">
-      <div className="form">
+      <div className="loginForm">
         <form className="login-form" onSubmit={handleSubmit}>
           <input type="text" placeholder="Username" value={state.username} name="username" onChange={(event) => setState({ ...state, username: event.target.value })} />
           <input type="password" placeholder="Password" value={state.password} name="password" onChange={(event) => setState({ ...state, password: event.target.value })} />
