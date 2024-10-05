@@ -20,7 +20,7 @@ const DetailsOfUsers = () => {
                     navigate('/');
                     return;
                 }
-                const userResponse = await fetch(`http://localhost:3010/user/${userId}`, {
+                const userResponse = await fetch(`/user/${userId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`, 
                     },
@@ -37,7 +37,7 @@ const DetailsOfUsers = () => {
                     alert('Access denied: Only admins can view user details');
                     navigate('/Home'); 
                 } else {
-                    const response = await fetch('http://localhost:3010/users', {
+                    const response = await fetch('/users', {
                         headers: {
                             'Authorization': `Bearer ${token}`, // Add Authorization header
                         },
@@ -68,7 +68,7 @@ const DetailsOfUsers = () => {
         try {
             const token = localStorage.getItem('token'); 
 
-            const response = await fetch(`http://localhost:3010/user/${userId}`, {
+            const response = await fetch(`/user/${userId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`, 
@@ -92,7 +92,7 @@ const DetailsOfUsers = () => {
         event.preventDefault();
         const token = localStorage.getItem('token');
         try {
-            const response = await fetch(`http://localhost:3010/user/${editingUserId}`, {
+            const response = await fetch(`/user/${editingUserId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 
                             'Authorization': `Bearer ${token}`,

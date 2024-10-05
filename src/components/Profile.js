@@ -27,7 +27,7 @@ const Profile = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:3010/user/${userId}`, {
+            const response = await fetch(`/user/${userId}`, {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
@@ -89,10 +89,11 @@ const Profile = () => {
     const token = localStorage.getItem('token');
   
     try {
-      const response = await fetch(`http://localhost:3010/user/${user._id}`, {
+      const response = await fetch(`/user/${user._id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(updatedUser),
       });
