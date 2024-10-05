@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import Customizedmsg from './Customizedmsg';
 import '../App.css';
 
 const Registration = () => {
@@ -22,6 +23,9 @@ const Registration = () => {
     role: 'user',
   });
 
+  const [showModal, setShowModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     const response = await fetch('/register', {
@@ -34,7 +38,8 @@ const Registration = () => {
 
     const result = await response.json();
     if (result.success) {
-      alert(result.message);
+      setModalMessage(result.message);
+      setShowModal(true);
       console.log(result.message);
       setState({
         fname: '',
@@ -55,9 +60,14 @@ const Registration = () => {
         role: 'user',
       });
     } else {
-      alert(result.message);
+      setModalMessage(result.message);
+      setShowModal(true);
       console.log(result.message);
     }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
   };
 
   const handleImageChange = (event) => {
@@ -94,6 +104,7 @@ const Registration = () => {
       <div className="loginForm">
       <p className="message">Already registered? <Link to="/">Login Here</Link> </p>
         <form className="login-form" onSubmit={handleSubmit}>
+          {showModal && <Customizedmsg show={showModal} handleClose={handleCloseModal} message={modalMessage} />}
           <input
             type="text"
             placeholder="First Name"
