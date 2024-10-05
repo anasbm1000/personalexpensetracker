@@ -5,25 +5,31 @@ import Registration from './components/Registration';
 import Home from './components/Home';
 import Profile from './components/Profile';
 import DetailsOfUsers from './admin/DetailsOfUsers';
+import IncomeAndLimits from './components/IncomeAndLimits';
+import IncomeProfile from './components/IncomeProfile';
+import ExpenseDetails from './components/ExpenseDetails';
 import Customizedmsg from './components/Customizedmsg';
 import './App.css';
 
 const App = () => {
-  
+
+
   return (
     <main>
       <Router>
         <Routes>
-          <Route path='/' Component={Login} />
-          <Route path='/Home'  Component={Home} />
-          <Route path='/Registration' Component={Registration} />
-          <Route path='/Profile' Component={Profile} />
-          <Route path='/DetailsOfUsers' Component={DetailsOfUsers} /> 
-          <Route path='/Customizedmsg' Component={Customizedmsg} />
+          <Route path='/' element={<Login />} />
+          <Route path='/Home' element={<Home />} />
+          <Route path='/Registration' element={<Registration />} />
+          <Route path='/Profile' element={<Profile />} />
+          <Route path='/DetailsOfUsers' element={<DetailsOfUsers />} />
+          <Route path='/IncomeAndLimits' element={<IncomeAndLimits />} />
+          <Route path='/IncomeProfile' element={<IncomeProfile />} />
+          <Route path='/ExpenseDetails' element={<ExpenseDetails />} />
+          <Route path='/Customizedmsg' element={<Customizedmsg />} />
         </Routes>
       </Router>
     </main>
-    
   );
 };
 
