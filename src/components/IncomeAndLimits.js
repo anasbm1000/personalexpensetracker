@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Customizedmsg from './Customizedmsg';
 import { Link, useNavigate } from 'react-router-dom';
@@ -9,7 +8,8 @@ const IncomeAndLimits = () => {
         income: 0,
         budgetCategories: [],
     });
-    const [isEditing, setIsEditing] = useState(false); // Controls whether we are in edit mode
+    const [isEditing, setIsEditing] = useState(true); // Start in edit mode for first-time users
+    const [isNewUser, setIsNewUser] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [modalMessage, setModalMessage] = useState('');
     const navigate = useNavigate();
@@ -41,16 +41,22 @@ const IncomeAndLimits = () => {
                 const response = await fetch(`/categorylimits/${userId}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
-                const data = await response.json();
 
+                if (response.status === 404) {
+                    // No data exists for this user yet
+                    setIsNewUser(true);
+                    setIsEditing(true); // Enable edit mode for first-time input
+                    return;
+                }
+
+                const data = await response.json();
                 if (data.success && data.categoryLimits) {
                     setState({
                         income: data.categoryLimits.income,
                         budgetCategories: data.categoryLimits.budgetCategories,
                     });
-                    setIsEditing(false); // Set to false if data already exists
-                } else {
-                    setIsEditing(true); // If no data exists, enter edit mode to allow first-time input
+                    setIsEditing(false); 
+                    setIsNewUser(false);
                 }
             } catch (error) {
                 console.error("Error fetching category limits", error);
@@ -91,6 +97,7 @@ const IncomeAndLimits = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
         const totalLimit = state.budgetCategories.reduce((acc, curr) => acc + curr.limitPercentage, 0);
 
         if (totalLimit > 100) {
@@ -100,9 +107,9 @@ const IncomeAndLimits = () => {
         }
 
         const categoryLimitsData = {
-            userId: localStorage.getItem('userId'),
+            userId,
             income: state.income,
-            budgetCategories: state.budgetCategories.map(category => ({
+            budgetCategories: state.budgetCategories.map((category) => ({
                 categoryName: category.categoryName,
                 limitPercentage: category.limitPercentage,
                 amount: category.amount
@@ -110,20 +117,23 @@ const IncomeAndLimits = () => {
         };
 
         try {
-            const response = await fetch( isEditing ? `/categorylimits/${localStorage.getItem('userId')}` : '/categorylimits', {
-                method: isEditing ? 'PUT' : 'POST',
+            const response = await fetch(isNewUser ? '/categorylimits' : `/categorylimits/${userId}`, {
+                method: isNewUser ? 'POST' : 'PUT', // POST for new entries, PUT for updates
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify(categoryLimitsData),
             });
+
             const data = await response.json();
             if (data.success) {
                 navigate('/IncomeProfile');
+            } else {
+                console.error("Error creating/updating category limits: " + data.message);
             }
         } catch (error) {
-            console.error('Error creating category limits:', error);
+            console.error('Error creating/updating category limits:', error);
         }
     };
 
