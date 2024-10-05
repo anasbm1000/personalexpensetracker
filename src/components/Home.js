@@ -24,7 +24,7 @@ const Home = () => {
                 return;
             }
             try {
-                const response = await fetch(`http://localhost:3010/user/${userId}`, {
+                const response = await fetch(`/user/${userId}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                     }, 
@@ -66,7 +66,7 @@ const Home = () => {
             <Link to="/DetailsOfUsers">Registered Users</Link>
           </div> }
           { role === 'user' && <div className="card">
-            <Link to="/income">Budget Details</Link>
+            <Link to="/IncomeAndLimits">Budget Details</Link>
           </div> }
           { role === 'user' && <div className="card">
             <Link to="/expenses">Expense Details</Link>
