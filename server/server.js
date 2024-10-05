@@ -8,9 +8,7 @@ const cryptogenerator = require('crypto');
 
 const app = express();
 
-const JWT_SECRET = cryptogenerator.randomBytes(64).toString('hex');
-console.log(JWT_SECRET);
-
+const JWT_SECRET = process.env.JWT_SECRET || cryptogenerator.randomBytes(64).toString('hex');
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -24,7 +22,7 @@ mongoose.connect(dbURI)
 .then(() => console.log('MongoDB connected'))
 .catch((err) => console.log(err));
 
-const userSchema = new mongoose.Schema(
+let userSchema = new mongoose.Schema(
     {
         fname: { type: String, required: true },                  
         lname: { type: String, required: true },                  
@@ -33,7 +31,7 @@ const userSchema = new mongoose.Schema(
         gender: { type: String, enum: ['Male', 'Female'], required: true },  
         phone: { type: String, required: true },                  
         countryCode: { type: String, enum: ['+91', '+1'], default: '+91', required: true },            
-        email: { type: String, unique: true, default: '+91', required: true },    
+        email: { type: String, unique: true, required: true },    
         place: { type: String },                                  
         district: { type: String },                               
         country: { type: String },                                
@@ -44,7 +42,43 @@ const userSchema = new mongoose.Schema(
     }, { timestamps: true }
 );  
 
-const User = mongoose.model('User', userSchema);
+let User = mongoose.model('User', userSchema);
+
+
+let categoryLimitsSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    income: { type: Number, required: true },
+    budgetCategories: [{
+        categoryName: { type: String, required: true },
+        limitPercentage: { type: Number, required: true },
+        amount: { type: Number, required: true }
+    }]
+}, { timestamps: true }
+);
+
+let CategoryLimits = mongoose.model('CategoryLimits', categoryLimitsSchema);
+
+let expensesSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    expenseName: { type: String, required: true },
+    category: { type: String, required: true },
+    amountSpent: { type: Number, required: true },
+    dateOfExpense: { type: Date, required: true }
+}, { timestamps: true });
+
+let Expenses = mongoose.model('Expenses', expensesSchema);
+
+
+const authenticateToken = (req, res, next) => {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: "Unauthorized" });
+
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.status(403).json({ message: "Forbidden" });
+        req.user = user;
+        next();
+    });
+};
 
 app.post("/login", async (req, res) => {
     const { username, password } = req.body;
@@ -61,17 +95,6 @@ app.post("/login", async (req, res) => {
         res.status(500).json({ success: false, message: "Error during login" });
     }
 });
-
-const authenticateToken = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) return res.status(401).json({ message: "Unauthorized" });
-
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) return res.status(403).json({ message: "Forbidden" });
-        req.user = user;
-        next();
-    });
-};
 
 app.post("/register", async (req, res) => {
     const { fname, lname, dob, age, gender, phone, countryCode, email, place, district, country, username, password, confirmpassword, profilePicture, role } = req.body;
@@ -146,6 +169,91 @@ app.delete('/user/:id', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Error deleting user' });
     }
 });
+
+app.post("/categorylimits", authenticateToken, async (req, res) => {
+    const { userId, income, budgetCategories } = req.body;
+    try {
+        const newCategoryLimits = new CategoryLimits({  userId, income, budgetCategories });
+        await newCategoryLimits.save();
+        res.status(201).json({ success: true, message: "Category limits added", categoryLimits: newCategoryLimits });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error adding category limits", error });
+    }
+});
+
+
+app.get("/categorylimits/:userId", authenticateToken, async (req, res) => {
+    try {
+        const categoryLimits = await CategoryLimits.findOne({ userId: req.params.userId });
+        
+        if (categoryLimits) {
+            res.json({ success: true, categoryLimits });
+        } else {
+            res.status(404).json({ success: false, message: "Category limits not found" });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error fetching category limits", error });
+    }
+});
+
+app.put("/categorylimits/:userId", authenticateToken, async (req, res) => {
+    const { income, budgetCategories } = req.body;
+
+    try {
+        const updatedCategoryLimits = await CategoryLimits.findOneAndUpdate(
+            { userId: req.params.userId },
+            { income, budgetCategories },
+            { new: true }
+        );
+        if (updatedCategoryLimits) {
+            res.json({ success: true, message: "Category limits updated successfully", categoryLimits: updatedCategoryLimits });
+        } else {
+            res.status(404).json({ success: false, message: "Category limits not found" });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error updating category limits", error });
+    }
+});
+
+app.post("/expenses", authenticateToken, async (req, res) => {
+    const { userId, username, email, expenseName, category, amountSpent, dateOfExpense } = req.body;
+    
+    try {
+        const categoryLimits = await CategoryLimits.findOne({ userId });
+        
+        if (!categoryLimits) {
+            return res.status(400).json({ success: false, message: "Category limits not found for the user" });
+        }
+        
+        const validCategories = Array.from(categoryLimits.budgetCategories.keys()); 
+        
+        if (!validCategories.includes(category)) {
+            return res.status(400).json({ success: false, message: "Invalid category" });
+        }
+        
+        const newExpense = new Expenses({ userId, username, email, expenseName, category, amountSpent, dateOfExpense });
+        
+        await newExpense.save();
+        res.json({ success: true, message: "Expense added", expense: newExpense });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error adding expense", error });
+    }
+});
+
+
+app.get("/expenses/:userId", authenticateToken, async (req, res) => {
+    try {
+        const expenses = await Expenses.find({ userId: req.params.userId });
+        if (expenses.length > 0) {
+            res.json({ success: true, expenses });
+        } else {
+            res.status(404).json({ success: false, message: "No expenses found" });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error fetching expenses", error });
+    }
+});
+
 
 const PORT = 3010;
 app.listen(PORT, () => 
