@@ -148,10 +148,15 @@ const ExpenseDetails = () => {
 
   const handleDeleteExpense = async (expenseId) => {
     const userId = localStorage.getItem('userId');
+
+    const token = localStorage.getItem('token');
     
     try {
       await fetch(`/expenses/${expenseId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
       });
       fetchExpenses(userId);
     } catch (error) {
