@@ -183,9 +183,9 @@ const ExpenseDetails = () => {
   const generateChartData = useCallback((expenses) => {
     return (categories || []).map((cat) => {
       const totalForCategory = expenses
-        .filter((expense) => expense.category === cat.categoryName)
+        .filter((expense) => expense.category === cat)
         .reduce((acc, curr) => acc + curr.amount, 0);
-      return { category: cat.categoryName, total: totalForCategory };
+      return { category: cat, total: totalForCategory };
     });
   }, [categories]);
 
@@ -193,6 +193,7 @@ const ExpenseDetails = () => {
     setChartData(generateChartData(expenses));
   }, [expenses, generateChartData]);
 
+  
   return (
     <div>
       <h1>Expense Details</h1>
@@ -259,8 +260,13 @@ const ExpenseDetails = () => {
       </table>
 
       <h2>Expense Distribution</h2>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={chartData}>
+      <ResponsiveContainer width="100%" height={400}>
+        <BarChart
+          data={chartData}
+          margin={{
+            top: 5, right: 30, left: 20, bottom: 5,
+          }}
+        >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="category" />
           <YAxis />
