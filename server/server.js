@@ -60,10 +60,10 @@ let CategoryLimits = mongoose.model('CategoryLimits', categoryLimitsSchema);
 
 let expensesSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    expenseName: { type: String, required: true },
+    name: { type: String, required: true },
     category: { type: String, required: true },
-    amountSpent: { type: Number, required: true },
-    dateOfExpense: { type: Date, required: true }
+    amount: { type: Number, required: true },
+    date: { type: Date, required: true }
 }, { timestamps: true });
 
 let Expenses = mongoose.model('Expenses', expensesSchema);
@@ -181,6 +181,25 @@ app.post("/categorylimits", authenticateToken, async (req, res) => {
     }
 });
 
+app.post("/expenses", authenticateToken, async (req, res) => {
+    try {
+        const newExpense = new Expenses(req.body);
+        await newExpense.save();
+        res.json({ success: true, message: "Expense added successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Error adding expense" });
+    }
+});
+
+app.get("/expenses/:userId", authenticateToken, async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const expenses = await Expenses.find({ userId });
+        res.json(expenses);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching expenses" });
+    }
+});
 
 app.get("/categorylimits/:userId", authenticateToken, async (req, res) => {
     try {
@@ -215,44 +234,40 @@ app.put("/categorylimits/:userId", authenticateToken, async (req, res) => {
     }
 });
 
-app.post("/expenses", authenticateToken, async (req, res) => {
-    const { userId, username, email, expenseName, category, amountSpent, dateOfExpense } = req.body;
-    
+
+app.put('/expenses/:expenseId', authenticateToken, async (req, res) => {
+    const { expenseId } = req.params;
+    const { name, amount, category, date } = req.body;
+  
     try {
-        const categoryLimits = await CategoryLimits.findOne({ userId });
-        
-        if (!categoryLimits) {
-            return res.status(400).json({ success: false, message: "Category limits not found for the user" });
-        }
-        
-        const validCategories = Array.from(categoryLimits.budgetCategories.keys()); 
-        
-        if (!validCategories.includes(category)) {
-            return res.status(400).json({ success: false, message: "Invalid category" });
-        }
-        
-        const newExpense = new Expenses({ userId, username, email, expenseName, category, amountSpent, dateOfExpense });
-        
-        await newExpense.save();
-        res.json({ success: true, message: "Expense added", expense: newExpense });
+      const updatedExpense = await Expenses.findByIdAndUpdate(
+        expenseId,
+        { name, amount, category, date },
+        { new: true }
+      );
+  
+      if (!updatedExpense) {
+        return res.status(404).json({ error: 'Expense not found' });
+      }
+  
+      res.status(200).json(updatedExpense);
     } catch (error) {
-        res.status(500).json({ success: false, message: "Error adding expense", error });
+      res.status(500).json({ error: 'Error updating expense' });
+    }
+  });
+  
+
+app.delete("/expenses/:expenseId", authenticateToken, async (req, res) => {
+    const { expenseId } = req.params;
+    try {
+        await Expenses.findByIdAndDelete(expenseId);
+        res.json({ success: true, message: "Expense deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Error deleting expense" });
     }
 });
+  
 
-
-app.get("/expenses/:userId", authenticateToken, async (req, res) => {
-    try {
-        const expenses = await Expenses.find({ userId: req.params.userId });
-        if (expenses.length > 0) {
-            res.json({ success: true, expenses });
-        } else {
-            res.status(404).json({ success: false, message: "No expenses found" });
-        }
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Error fetching expenses", error });
-    }
-});
 
 
 const PORT = 3010;
