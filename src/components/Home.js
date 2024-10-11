@@ -69,7 +69,7 @@ const Home = () => {
             <Link to="/IncomeAndLimits">Budget Details</Link>
           </div> }
           { role === 'user' && <div className="card">
-            <Link to="/expenses">Expense Details</Link>
+            <Link to="/ExpenseDetails">Expense Details</Link>
           </div> }
         </div>
       </div>
