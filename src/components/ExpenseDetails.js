@@ -221,8 +221,8 @@ const ExpenseDetails = () => {
           <label>Category:</label>
           <select value={category} onChange={(e) => setCategory(e.target.value)} required>
             <option value="">Select Category</option>
-            {(categories || []).map((category, index) => (
-              <option key={index} value={category}>
+            {(categories || []).map((category) => (
+              <option key={category} value={category}>
                 {category}
               </option>
             ))}
@@ -245,8 +245,8 @@ const ExpenseDetails = () => {
           </tr>
         </thead>
         <tbody>
-          {(expenses || []).map((expense) => (
-            <tr key={expense._id}>
+          {(expenses || []).map((expense, index) => (
+            <tr key={index}>
               <td>{expense.name}</td>
               <td>{expense.category}</td>
               <td>{expense.amount}</td>
