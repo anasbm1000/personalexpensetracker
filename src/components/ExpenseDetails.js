@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { useNavigate } from 'react-router-dom';
 import '../App.css';
 
 const ExpenseDetails = () => {
@@ -12,8 +12,8 @@ const ExpenseDetails = () => {
   const [balance, setBalance] = useState(0);
   const [income, setIncome] = useState(0);
   const [categories, setCategories] = useState([]);
+  const [categoryTotals, setCategoryTotals] = useState([]);
   const [alertMessage, setAlertMessage] = useState('');
-  const [chartData, setChartData] = useState([]);
   const [editMode, setEditMode] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState(null);
   const navigate = useNavigate();
@@ -35,41 +35,54 @@ const ExpenseDetails = () => {
     }
   }, [income]);
 
-  // Fetch Expenses
   const fetchExpenses = useCallback(async (userId) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`/expenses/${userId}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
       const data = await response.json();
-      setExpenses(data || []);  // Add default empty array to avoid undefined
-      calculateTotalExpenses(data || []);  // Pass default empty array if data is undefined
+      setExpenses(data || []);
+      calculateTotalExpenses(data || []);
     } catch (error) {
       console.error('Error fetching expenses', error);
     }
   }, [calculateTotalExpenses]);
 
-  // Fetch Income and Categories
   const fetchIncomeAndCategories = useCallback(async (userId) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`/categorylimits/${userId}`, {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       const data = await response.json();
       if (data.success) {
         setIncome(data.categoryLimits.income);
-        setCategories(data.categoryLimits.budgetCategories.map(cat => cat.categoryName));
+        setCategories(data.categoryLimits.budgetCategories.map((cat) => cat.categoryName));
       }
     } catch (error) {
       console.error('Error fetching income and categories', error);
     }
   }, []);
+
+  const calculateCategoryTotals = useCallback(() => {
+    const totals = categories.map((category) => {
+      const totalAmount = expenses
+        .filter((expense) => expense.category === category)
+        .reduce((sum, expense) => sum + expense.amount, 0);
+
+      return {
+        category,
+        totalAmount,
+        details: expenses.filter((expense) => expense.category === category),
+      };
+    });
+    setCategoryTotals(totals);
+  }, [categories, expenses]);
 
   useEffect(() => {
     const userId = localStorage.getItem('userId');
@@ -81,11 +94,17 @@ const ExpenseDetails = () => {
     fetchIncomeAndCategories(userId);
   }, [navigate, fetchExpenses, fetchIncomeAndCategories]);
 
+  useEffect(() => {
+    if (categories.length > 0 && expenses.length > 0) {
+      calculateCategoryTotals();
+    }
+  }, [categories, expenses, calculateCategoryTotals]);
+
   const handleAddExpense = async (e) => {
     e.preventDefault();
     const userId = localStorage.getItem('userId');
     if (editMode && expenseToEdit) {
-      handleUpdateExpense(expenseToEdit._id); // If in edit mode, update the expense
+      handleUpdateExpense(expenseToEdit._id);
       return;
     }
 
@@ -110,8 +129,8 @@ const ExpenseDetails = () => {
 
       const data = await response.json();
       if (data.success) {
-          setExpenses([...expenses, newExpense]);
-          calculateTotalExpenses([...expenses, newExpense]);
+        setExpenses([...expenses, newExpense]);
+        calculateTotalExpenses([...expenses, newExpense]);
       }
       fetchExpenses(userId);
       resetForm();
@@ -134,7 +153,7 @@ const ExpenseDetails = () => {
       await fetch(`/expenses/${expenseId}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(updatedExpense),
@@ -148,15 +167,13 @@ const ExpenseDetails = () => {
 
   const handleDeleteExpense = async (expenseId) => {
     const userId = localStorage.getItem('userId');
-
     const token = localStorage.getItem('token');
-    
     try {
       await fetch(`/expenses/${expenseId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`,
-        }
+          Authorization : `Bearer ${token}`,
+        },
       });
       fetchExpenses(userId);
     } catch (error) {
@@ -180,22 +197,37 @@ const ExpenseDetails = () => {
     setExpenseToEdit(null);
   };
 
-  const generateChartData = useCallback((expenses) => {
-    return (categories || []).map((cat) => {
-      const totalForCategory = expenses
-        .filter((expense) => expense.category === cat)
-        .reduce((acc, curr) => acc + curr.amount, 0);
-      return { category: cat, total: totalForCategory };
-    });
-  }, [categories]);
+  // Memoize color generation to keep consistent colors across renders
 
-  useEffect(() => {
-    setChartData(generateChartData(expenses));
-  }, [expenses, generateChartData]);
+  const customTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      const currentCategory = payload[0].payload;
+      return (
+        <div className="custom-tooltip">
+          <p>{label}</p>
+          {currentCategory.details.map((detail, index) => (
+            <p key={index}>
+              {detail.name}: {detail.amount}
+            </p>
+          ))}
+          <p>Total: {currentCategory.totalAmount}</p>
+          
+        </div>
+      );
+    }
+    return null;
+  };
 
-  
   return (
     <div>
+      <div className="userhome-page">
+          <Link to="/" onClick={() => {
+              localStorage.removeItem("userId");
+              localStorage.removeItem("token");
+              navigate("/");
+          }}>Logout</Link>
+          <Link to="/Home">Back to Home</Link>
+      </div>
       <h1>Expense Details</h1>
 
       <form onSubmit={handleAddExpense}>
@@ -221,7 +253,7 @@ const ExpenseDetails = () => {
           <label>Category:</label>
           <select value={category} onChange={(e) => setCategory(e.target.value)} required>
             <option value="">Select Category</option>
-            {(categories || []).map((category) => (
+            {categories.map((category) => (
               <option key={category} value={category}>
                 {category}
               </option>
@@ -235,12 +267,26 @@ const ExpenseDetails = () => {
       <h2>Balance: {balance}</h2>
       {alertMessage && <p style={{ color: 'red' }}>{alertMessage}</p>}
 
+      <h3>Category Totals:</h3>
+      <ResponsiveContainer width="100%" height={400}>
+        <BarChart data={categoryTotals}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="category" />
+          <YAxis />
+          <Tooltip content={customTooltip} />
+          <Legend />
+          <Bar key={'expense'} dataKey="totalAmount" fill="#8884d8" />     
+        </BarChart>
+      </ResponsiveContainer>
+
+      <h3>Expense List:</h3>
       <table>
         <thead>
           <tr>
             <th>Expense Name</th>
             <th>Category</th>
             <th>Amount</th>
+            <th>Date</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -250,6 +296,7 @@ const ExpenseDetails = () => {
               <td>{expense.name}</td>
               <td>{expense.category}</td>
               <td>{expense.amount}</td>
+              <td>{new Date(expense.date).toLocaleDateString()}</td>
               <td>
                 <button onClick={() => handleEditExpense(expense)}>Edit</button>
                 <button onClick={() => handleDeleteExpense(expense._id)}>Delete</button>
@@ -259,22 +306,7 @@ const ExpenseDetails = () => {
         </tbody>
       </table>
 
-      <h2>Expense Distribution</h2>
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart
-          data={chartData}
-          margin={{
-            top: 5, right: 30, left: 20, bottom: 5,
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="category" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="total" fill="#8884d8" />
-        </BarChart>
-      </ResponsiveContainer>
+
     </div>
   );
 };
