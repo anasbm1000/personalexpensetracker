@@ -62,7 +62,7 @@ const ExpenseDetails = () => {
       const data = await response.json();
       if (data.success) {
         setIncome(data.categoryLimits.income);
-        setCategories(data.categoryLimits.budgetCategories.map((cat) => cat.categoryName));
+        setCategories(data.categoryLimits.budgetCategories);
       }
     } catch (error) {
       console.error('Error fetching income and categories', error);
@@ -72,13 +72,13 @@ const ExpenseDetails = () => {
   const calculateCategoryTotals = useCallback(() => {
     const totals = categories.map((category) => {
       const totalAmount = expenses
-        .filter((expense) => expense.category === category)
+        .filter((expense) => expense.category === category.categoryName)
         .reduce((sum, expense) => sum + expense.amount, 0);
 
       return {
-        category,
+        category : category.categoryName,
         totalAmount,
-        details: expenses.filter((expense) => expense.category === category),
+        details: expenses.filter((expense) => expense.category === category.categoryName),
       };
     });
     setCategoryTotals(totals);
@@ -103,20 +103,47 @@ const ExpenseDetails = () => {
   const handleAddExpense = async (e) => {
     e.preventDefault();
     const userId = localStorage.getItem('userId');
+  
+    // Fetch the current category limit
+    const selectedCategory = categories.find((cat) => cat.categoryName === category);
+    const categoryLimit = selectedCategory ? selectedCategory.amount : 0;
+    const currentCategoryTotal = categoryTotals.find((total) => total.category === category)?.totalAmount || 0;
+  
+    const newExpenseAmount = Number(expenseAmount);
+    const newTotalExpenseForCategory = currentCategoryTotal + newExpenseAmount;
+  
     if (editMode && expenseToEdit) {
       handleUpdateExpense(expenseToEdit._id);
       return;
     }
-
+  
+    // Check if the new expense exceeds the category limit
+    if (newTotalExpenseForCategory > categoryLimit) {
+      const proceed = window.confirm(
+        `The total expenses for category "${category}" exceed the limit (${categoryLimit}). Do you still want to add this expense?`
+      );
+      if (!proceed) {
+        return;
+      }
+    }
+  
+    // Check if the new total expenses exceed the user's income
+    const newTotalExpenses = totalExpenses + newExpenseAmount;
+    if (newTotalExpenses > income) {
+      alert(`Adding this expense will exceed your total income limit. Please adjust the expense.`);
+      return;
+    }
+  
+    // Proceed with adding the expense
     try {
       const newExpense = {
         userId,
         name: expenseName,
-        amount: expenseAmount,
+        amount: newExpenseAmount,
         category,
         date: new Date(),
       };
-
+  
       const token = localStorage.getItem('token');
       const response = await fetch('/expenses', {
         method: 'POST',
@@ -126,7 +153,7 @@ const ExpenseDetails = () => {
         },
         body: JSON.stringify(newExpense),
       });
-
+  
       const data = await response.json();
       if (data.success) {
         setExpenses([...expenses, newExpense]);
@@ -138,6 +165,7 @@ const ExpenseDetails = () => {
       console.error('Error adding expense', error);
     }
   };
+  
 
   const handleUpdateExpense = async (expenseId) => {
     const userId = localStorage.getItem('userId');
@@ -251,11 +279,15 @@ const ExpenseDetails = () => {
         </div>
         <div>
           <label>Category:</label>
-          <select value={category} onChange={(e) => setCategory(e.target.value)} required>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            required
+          >
             <option value="">Select Category</option>
             {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
+              <option key={category._id} value={category.categoryName}>
+                {category.categoryName} (Limit: {category.amount})
               </option>
             ))}
           </select>
@@ -275,7 +307,7 @@ const ExpenseDetails = () => {
           <YAxis />
           <Tooltip content={customTooltip} />
           <Legend />
-          <Bar key={'expense'} dataKey="totalAmount" fill="#8884d8" />     
+          <Bar dataKey="totalAmount" fill="#8884d8" />     
         </BarChart>
       </ResponsiveContainer>
 
