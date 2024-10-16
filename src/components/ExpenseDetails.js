@@ -158,11 +158,15 @@ const ExpenseDetails = () => {
       if (data.success) {
         setExpenses([...expenses, newExpense]);
         calculateTotalExpenses([...expenses, newExpense]);
+        alert('Expense added successfully!');
+      } else {
+        alert('Error adding expense: ' + data.message); // Error alert
       }
       fetchExpenses(userId);
       resetForm();
     } catch (error) {
       console.error('Error adding expense', error);
+      alert('There was a problem adding the expense. Please try again.');
     }
   };
   
@@ -207,6 +211,10 @@ const ExpenseDetails = () => {
         category,
         date: new Date(),
       };
+
+      const confirmUpdate = window.confirm('Are you sure you want to update this expense?');
+      if (!confirmUpdate) return;      
+
       const token = localStorage.getItem('token');
       await fetch(`/expenses/${expenseId}`, {
         method: 'PUT',
@@ -218,14 +226,20 @@ const ExpenseDetails = () => {
       });
       fetchExpenses(userId);
       resetForm();
+      alert('Expense updated successfully!');
     } catch (error) {
       console.error('Error updating expense', error);
+      alert('There was a problem updating the expense. Please try again.');
     }
   };
 
   const handleDeleteExpense = async (expenseId) => {
     const userId = localStorage.getItem('userId');
     const token = localStorage.getItem('token');
+
+    const confirmDelete = window.confirm('Are you sure you want to delete this expense?');
+    if (!confirmDelete) return;
+
     try {
       await fetch(`/expenses/${expenseId}`, {
         method: 'DELETE',
@@ -234,8 +248,10 @@ const ExpenseDetails = () => {
         },
       });
       fetchExpenses(userId);
+      alert('Expense deleted successfully!');
     } catch (error) {
       console.error('Error deleting expense', error);
+      alert('There was a problem deleting the expense. Please try again.');
     }
   };
 
@@ -309,7 +325,7 @@ const customTooltip = ({ active, payload, label }) => {
             onChange={(e) => setCategory(e.target.value)}
             required
           >
-            <option value="">Select Category</option>
+            <option value="" disabled>Select Category</option>
             {categories.map((category) => (
               <option key={category._id} value={category.categoryName}>
                 {category.categoryName} (Limit: {category.amount})
