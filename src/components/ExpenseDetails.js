@@ -169,11 +169,41 @@ const ExpenseDetails = () => {
 
   const handleUpdateExpense = async (expenseId) => {
     const userId = localStorage.getItem('userId');
+
+    // Get the current category and expense amounts before the update
+    const originalExpense = expenses.find((exp) => exp._id === expenseId);
+    const originalAmount = originalExpense ? originalExpense.amount : 0;
+    
+    const selectedCategory = categories.find((cat) => cat.categoryName === category);
+    const categoryLimit = selectedCategory ? selectedCategory.amount : 0;
+
+    const currentCategoryTotal = categoryTotals.find((total) => total.category === category)?.totalAmount || 0;
+    
+    const newExpenseAmount = Number(expenseAmount);
+    const newTotalExpenseForCategory = (currentCategoryTotal - originalAmount) + newExpenseAmount;
+  
+    // Check if the updated expense exceeds the category limit
+    if (newTotalExpenseForCategory > categoryLimit) {
+      const proceed = window.confirm(
+        `The total expenses for category "${category}" exceed the limit (${categoryLimit}). Do you still want to update this expense?`
+      );
+      if (!proceed) {
+        return;
+      }
+    }
+  
+    // Check if the updated total expenses exceed the user's income
+    const newTotalExpenses = (totalExpenses - originalAmount) + newExpenseAmount;
+    if (newTotalExpenses > income) {
+      alert(`Updating this expense will exceed your total income limit. Please adjust the expense.`);
+      return;
+    }
+  
     try {
       const updatedExpense = {
         userId,
         name: expenseName,
-        amount: expenseAmount,
+        amount: newExpenseAmount,
         category,
         date: new Date(),
       };
@@ -227,18 +257,13 @@ const ExpenseDetails = () => {
 
   // Memoize color generation to keep consistent colors across renders
 
-  const customTooltip = ({ active, payload, label }) => {
+const customTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const currentCategory = payload[0].payload;
       return (
         <div className="custom-tooltip">
-          <p>{label}</p>
-          {currentCategory.details.map((detail, index) => (
-            <p key={index}>
-              {detail.name}: {detail.amount}
-            </p>
-          ))}
-          <p>Total: {currentCategory.totalAmount}</p>
+          <p className="label">{`Category: ${label}`}</p>
+          <p>{`Total amount: ${currentCategory.totalAmount}`}</p>
           
         </div>
       );
@@ -307,7 +332,7 @@ const ExpenseDetails = () => {
           <YAxis />
           <Tooltip content={customTooltip} />
           <Legend />
-          <Bar dataKey="totalAmount" fill="#8884d8" />     
+          <Bar dataKey="totalAmount" fill="#82ca9d" />     
         </BarChart>
       </ResponsiveContainer>
 
