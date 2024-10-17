@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import '../App.css';
 
 const ExpenseDetails = () => {
@@ -16,6 +18,7 @@ const ExpenseDetails = () => {
   const [alertMessage, setAlertMessage] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState('');
   const navigate = useNavigate();
 
   const calculateTotalExpenses = useCallback((expensesList) => {
@@ -77,8 +80,10 @@ const ExpenseDetails = () => {
 
       return {
         category : category.categoryName,
+        categoryLimit: category.amount,
         totalAmount,
         details: expenses.filter((expense) => expense.category === category.categoryName),
+        availableBalance: category.amount - totalAmount,
       };
     });
     setCategoryTotals(totals);
@@ -271,9 +276,8 @@ const ExpenseDetails = () => {
     setExpenseToEdit(null);
   };
 
-  // Memoize color generation to keep consistent colors across renders
 
-const customTooltip = ({ active, payload, label }) => {
+  const customTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const currentCategory = payload[0].payload;
       return (
@@ -285,6 +289,20 @@ const customTooltip = ({ active, payload, label }) => {
       );
     }
     return null;
+  };
+
+  const handleMonthChange = (e) => {
+    setSelectedMonth(e.target.value);
+  };
+
+  const generatePDF = () => {
+    const input = document.getElementById('pdfContent');
+    html2canvas(input).then((canvas) => {
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      pdf.addImage(imgData, 'PNG', 10, 10);
+      pdf.save('expense-report.pdf');
+    });
   };
 
   return (
@@ -340,7 +358,16 @@ const customTooltip = ({ active, payload, label }) => {
       <h2>Balance: {balance}</h2>
       {alertMessage && <p style={{ color: 'red' }}>{alertMessage}</p>}
 
-      <h3>Category Totals:</h3>
+      <div>
+        <label>Select Month:</label>
+        <input
+          type="month"
+          value={selectedMonth}
+          onChange={handleMonthChange}
+        />
+      </div>
+
+      <button onClick={generatePDF}>Generate PDF</button>
       <ResponsiveContainer width="100%" height={400}>
         <BarChart data={categoryTotals}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -352,33 +379,56 @@ const customTooltip = ({ active, payload, label }) => {
         </BarChart>
       </ResponsiveContainer>
 
-      <h3>Expense List:</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Expense Name</th>
-            <th>Category</th>
-            <th>Amount</th>
-            <th>Date</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(expenses || []).map((expense, index) => (
-            <tr key={index}>
-              <td>{expense.name}</td>
-              <td>{expense.category}</td>
-              <td>{expense.amount}</td>
-              <td>{new Date(expense.date).toLocaleDateString()}</td>
-              <td>
-                <button onClick={() => handleEditExpense(expense)}>Edit</button>
-                <button onClick={() => handleDeleteExpense(expense._id)}>Delete</button>
-              </td>
+      <div id="pdfContent">
+        <h3>Expense List:</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Expense Name</th>
+              <th>Category</th>
+              <th>Amount</th>
+              <th>Date</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {(expenses || []).map((expense, index) => (
+              <tr key={index}>
+                <td>{expense.name}</td>
+                <td>{expense.category}</td>
+                <td>{expense.amount}</td>
+                <td>{new Date(expense.date).toLocaleDateString()}</td>
+                <td>
+                  <button onClick={() => handleEditExpense(expense)}>Edit</button>
+                  <button onClick={() => handleDeleteExpense(expense._id)}>Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
+        <h3>Category-wise Expenses</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Category Name</th>
+              <th>Category Limit</th>
+              <th>Total Expenses</th>
+              <th>Available Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {categoryTotals.map((categoryTotal, index) => (
+              <tr key={index}>
+                <td>{categoryTotal.category}</td>
+                <td>{categoryTotal.categoryLimit}</td>
+                <td>{categoryTotal.totalAmount}</td>
+                <td>{categoryTotal.availableBalance}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
     </div>
   );
