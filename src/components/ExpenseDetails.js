@@ -20,7 +20,12 @@ const ExpenseDetails = () => {
   const [expenseToEdit, setExpenseToEdit] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState('');
   const [userFullName, setUserFullName] = useState('');
+  const [viewSummary, setViewSummary] = useState('');
   const navigate = useNavigate();
+
+  const toggleView = () => {
+    setViewSummary(!viewSummary);
+  }
 
   const calculateTotalExpenses = useCallback((expensesList) => {
     const total = expensesList.reduce((acc, curr) => acc + curr.amount, 0);
@@ -282,6 +287,7 @@ const ExpenseDetails = () => {
 
   const handleEditExpense = (expense) => {
     setEditMode(true);
+    setViewSummary(!viewSummary);
     setExpenseToEdit(expense);
     setExpenseName(expense.name);
     setExpenseAmount(expense.amount);
@@ -390,117 +396,121 @@ const ExpenseDetails = () => {
           }}>Logout</Link>
           <Link to="/Home">Back to Home</Link>
       </div>
-      <h1>Expense Details</h1>
+      {!viewSummary ? (
+        <>
+          {alertMessage && <p style={{ color: 'red' }}>{alertMessage}</p>}
+          <form onSubmit={handleAddExpense}>
+            <div>
+              <label>Expense Name:</label>
+              <input
+                type="text"
+                value={expenseName}
+                onChange={(e) => setExpenseName(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label>Amount:</label>
+              <input
+                type="number"
+                value={expenseAmount}
+                onChange={(e) => setExpenseAmount(Number(e.target.value))}
+                required
+              />
+            </div>
+            <div>
+              <label>Category:</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                required
+              >
+                <option value="" disabled>Select Category</option>
+                {categories.map((category) => (
+                  <option key={category._id} value={category.categoryName}>
+                    {category.categoryName} (Limit: {category.amount})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button type="submit">{editMode ? 'Update Expense' : 'Add Expense'}</button>
+            <button type="button" onClick={resetForm}>{editMode ? 'Cancel' : 'Clear'}</button>
+            <button type="button" onClick={toggleView}>Expense Summary</button>
+          </form>
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={categoryTotals}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="category" />
+              <YAxis />
+              <Tooltip content={customTooltip} />
+              <Legend />
+              <Bar dataKey="totalAmount" fill="#8884d8" name="Total Category Expense" />
+              <Bar dataKey="categoryLimit" fill="#82ca9d" name="Category Limit" />    
+            </BarChart>
+          </ResponsiveContainer>
+        </>
+      ) : (
+        <>
+          
+          <h2>Total Expenses: {totalExpenses}</h2>
+          <h2>Balance: {balance}</h2>
+          <button type="button" onClick={toggleView}>Add Expense</button>
+          <div id="pdfContent">
+            <h3>Expense List:</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Expense Name</th>
+                  <th>Category</th>
+                  <th>Amount</th>
+                  <th>Edit</th>
+                  <th>Delete</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(expenses || []).map((expense, index) => (
+                  <tr key={index}>
+                    <td>{new Date(expense.date).toLocaleDateString('en-GB')}</td>
+                    <td>{expense.name}</td>
+                    <td>{expense.category}</td>
+                    <td>{expense.amount}</td>
+                    <td><button onClick={() => handleEditExpense(expense)}>Edit</button></td>
+                    <td><button onClick={() => handleDeleteExpense(expense._id)}>Delete</button></td>                
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-      <form onSubmit={handleAddExpense}>
-        <div>
-          <label>Expense Name:</label>
-          <input
-            type="text"
-            value={expenseName}
-            onChange={(e) => setExpenseName(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label>Amount:</label>
-          <input
-            type="number"
-            value={expenseAmount}
-            onChange={(e) => setExpenseAmount(Number(e.target.value))}
-            required
-          />
-        </div>
-        <div>
-          <label>Category:</label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            required
-          >
-            <option value="" disabled>Select Category</option>
-            {categories.map((category) => (
-              <option key={category._id} value={category.categoryName}>
-                {category.categoryName} (Limit: {category.amount})
-              </option>
-            ))}
-          </select>
-        </div>
-        <button type="submit">{editMode ? 'Update Expense' : 'Add Expense'}</button>
-        <button type="button" onClick={resetForm}>{editMode ? 'Cancel' : 'Clear'}</button>
-      </form>
-
-      <h2>Total Expenses: {totalExpenses}</h2>
-      <h2>Balance: {balance}</h2>
-      {alertMessage && <p style={{ color: 'red' }}>{alertMessage}</p>}
-
-      <div>
-        <label>Select Month:</label>
-        <input type="month" value={selectedMonth} onChange={handleMonthChange} />
-        <button onClick={generatePDF}>Generate PDF</button>
-      </div>
-      
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart data={categoryTotals}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="category" />
-          <YAxis />
-          <Tooltip content={customTooltip} />
-          <Legend />
-          <Bar dataKey="totalAmount" fill="#8884d8" name="Total Category Expense" />
-          <Bar dataKey="categoryLimit" fill="#82ca9d" name="Category Limit" />    
-        </BarChart>
-      </ResponsiveContainer>
-
-      <div id="pdfContent">
-        <h3>Expense List:</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Expense Name</th>
-              <th>Category</th>
-              <th>Amount</th>
-              <th>Edit</th>
-              <th>Delete</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(expenses || []).map((expense, index) => (
-              <tr key={index}>
-                <td>{new Date(expense.date).toLocaleDateString('en-GB')}</td>
-                <td>{expense.name}</td>
-                <td>{expense.category}</td>
-                <td>{expense.amount}</td>
-                <td><button onClick={() => handleEditExpense(expense)}>Edit</button></td>
-                <td><button onClick={() => handleDeleteExpense(expense._id)}>Delete</button></td>                
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <h3>Category-wise Expenses</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Category Name</th>
-              <th>Category Limit</th>
-              <th>Category Expense</th>
-              <th>Category Balance</th>
-            </tr>
-          </thead>
-          <tbody>
-            {categoryTotals.map((category, index) => (
-              <tr key={index}>
-                <td>{category.category}</td>
-                <td>{category.categoryLimit}</td>
-                <td>{category.totalAmount}</td>
-                <td>{category.availableBalance}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            <h3>Category-wise Expenses</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>Category Name</th>
+                  <th>Category Limit</th>
+                  <th>Category Expense</th>
+                  <th>Category Balance</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categoryTotals.map((category, index) => (
+                  <tr key={index}>
+                    <td>{category.category}</td>
+                    <td>{category.categoryLimit}</td>
+                    <td>{category.totalAmount}</td>
+                    <td>{category.availableBalance}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <label>Select Month:</label>
+            <input type="month" value={selectedMonth} onChange={handleMonthChange} />
+            <button onClick={generatePDF}>Generate PDF</button>
+          </div>
+        </>
+      )}
 
     </div>
   );
