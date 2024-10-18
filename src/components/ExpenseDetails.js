@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { jsPDF } from 'jspdf';
-import html2canvas from 'html2canvas';
+import 'jspdf-autotable';
 import '../App.css';
 
 const ExpenseDetails = () => {
@@ -281,10 +281,11 @@ const ExpenseDetails = () => {
     if (active && payload && payload.length) {
       const currentCategory = payload[0].payload;
       return (
-        <div className="custom-tooltip">
-          <p className="label">{`Category: ${label}`}</p>
-          <p>{`Total amount: ${currentCategory.totalAmount}`}</p>
-          
+        <div style={{ padding: "10px", border: "1px solid #ccc", backgroundColor: "#fff" }}>
+          <p>{`Category: ${label}`}</p>
+          <p>{`Limit: ${currentCategory.categoryLimit}`}</p>
+          <p>{`Expense: ${currentCategory.totalAmount}`}</p>
+          <p>{`Balance: ${currentCategory.availableBalance}`}</p>
         </div>
       );
     }
@@ -296,14 +297,69 @@ const ExpenseDetails = () => {
   };
 
   const generatePDF = () => {
-    const input = document.getElementById('pdfContent');
-    html2canvas(input).then((canvas) => {
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      pdf.addImage(imgData, 'PNG', 10, 10);
-      pdf.save('expense-report.pdf');
+    const doc = new jsPDF();
+  
+    const userId = localStorage.getItem('userId');
+    const userName = localStorage.getItem('fname');  
+    const reportDate = new Date().toLocaleDateString();
+    const monthYear = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+    
+    // Add the heading
+    doc.setFontSize(18);
+    doc.text(`Expense Statement - ${monthYear}`, 10, 20);
+  
+    // Add user information
+    doc.setFontSize(12);
+    doc.text(`User ID: ${userId}`, 10, 30);
+    doc.text(`User Name: ${userName || 'N/A'}`, 10, 40);
+    doc.text(`Date: ${reportDate}`, 10, 50);
+    doc.text(`Income: ₹${income}`, 10, 60);
+    doc.text(`Total Expense: ₹${totalExpenses}`, 10, 70);
+  
+    // Add Expense Table
+    const expenseTable = expenses.map(expense => [
+      new Date(expense.date).toLocaleDateString(), expense.name, expense.category, expense.amount 
+    ]);
+  
+    doc.autoTable({
+      head: [['Date', 'Expense Name', 'Category', 'Amount']],
+      body: expenseTable,
+      startY: 80,  // Adjust starting position
+      columnStyles: {
+        0: { cellWidth: 41 }, 
+        1: { cellWidth: 45 }, 
+        2: { cellWidth: 47 }, 
+        3: { cellWidth: 47 }, 
+      },
+      styles: { overflow: 'linebreak' },
     });
+  
+    // Add Category-Wise Summary Table
+    const categorySummary = categoryTotals.map(category => [
+      category.category, category.categoryLimit, category.totalAmount, category.availableBalance
+    ]);
+  
+    doc.autoTable({
+      head: [['Category Name', 'Category Limit', 'Category Expenses', 'Category Balance']],
+      body: categorySummary,
+      startY: doc.autoTable.previous.finalY + 10,  // Adjust starting position
+      columnStyles: {
+        0: { cellWidth: 41 }, 
+        1: { cellWidth: 45 }, 
+        2: { cellWidth: 47 }, 
+        3: { cellWidth: 47 }, 
+      },
+      styles: { overflow: 'linebreak' },
+    });
+  
+    // Add available balance at the end
+    doc.setFontSize(12);
+    doc.text(`Available Balance: ₹${balance}`, 10, doc.autoTable.previous.finalY + 20);
+  
+    // Save the PDF
+    doc.save(`expense-report-${monthYear}.pdf`);
   };
+  
 
   return (
     <div>
@@ -352,6 +408,7 @@ const ExpenseDetails = () => {
           </select>
         </div>
         <button type="submit">{editMode ? 'Update Expense' : 'Add Expense'}</button>
+        <button type="button" onClick={resetForm}>{editMode ? 'Cancel' : 'Clear'}</button>
       </form>
 
       <h2>Total Expenses: {totalExpenses}</h2>
@@ -360,14 +417,10 @@ const ExpenseDetails = () => {
 
       <div>
         <label>Select Month:</label>
-        <input
-          type="month"
-          value={selectedMonth}
-          onChange={handleMonthChange}
-        />
+        <input type="month" value={selectedMonth} onChange={handleMonthChange} />
+        <button onClick={generatePDF}>Generate PDF</button>
       </div>
-
-      <button onClick={generatePDF}>Generate PDF</button>
+      
       <ResponsiveContainer width="100%" height={400}>
         <BarChart data={categoryTotals}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -375,7 +428,8 @@ const ExpenseDetails = () => {
           <YAxis />
           <Tooltip content={customTooltip} />
           <Legend />
-          <Bar dataKey="totalAmount" fill="#82ca9d" />     
+          <Bar dataKey="totalAmount" fill="#8884d8" name="Total Category Expense" />
+          <Bar dataKey="categoryLimit" fill="#82ca9d" name="Category Limit" />    
         </BarChart>
       </ResponsiveContainer>
 
@@ -384,24 +438,23 @@ const ExpenseDetails = () => {
         <table>
           <thead>
             <tr>
+              <th>Date</th>
               <th>Expense Name</th>
               <th>Category</th>
               <th>Amount</th>
-              <th>Date</th>
-              <th>Actions</th>
+              <th>Edit</th>
+              <th>Delete</th>
             </tr>
           </thead>
           <tbody>
             {(expenses || []).map((expense, index) => (
               <tr key={index}>
+                <td>{new Date(expense.date).toLocaleDateString()}</td>
                 <td>{expense.name}</td>
                 <td>{expense.category}</td>
                 <td>{expense.amount}</td>
-                <td>{new Date(expense.date).toLocaleDateString()}</td>
-                <td>
-                  <button onClick={() => handleEditExpense(expense)}>Edit</button>
-                  <button onClick={() => handleDeleteExpense(expense._id)}>Delete</button>
-                </td>
+                <td><button onClick={() => handleEditExpense(expense)}>Edit</button></td>
+                <td><button onClick={() => handleDeleteExpense(expense._id)}>Delete</button></td>                
               </tr>
             ))}
           </tbody>
@@ -413,17 +466,17 @@ const ExpenseDetails = () => {
             <tr>
               <th>Category Name</th>
               <th>Category Limit</th>
-              <th>Total Expenses</th>
-              <th>Available Balance</th>
+              <th>Category Expense</th>
+              <th>Category Balance</th>
             </tr>
           </thead>
           <tbody>
-            {categoryTotals.map((categoryTotal, index) => (
+            {categoryTotals.map((category, index) => (
               <tr key={index}>
-                <td>{categoryTotal.category}</td>
-                <td>{categoryTotal.categoryLimit}</td>
-                <td>{categoryTotal.totalAmount}</td>
-                <td>{categoryTotal.availableBalance}</td>
+                <td>{category.category}</td>
+                <td>{category.categoryLimit}</td>
+                <td>{category.totalAmount}</td>
+                <td>{category.availableBalance}</td>
               </tr>
             ))}
           </tbody>
