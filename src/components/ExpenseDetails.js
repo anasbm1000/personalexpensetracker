@@ -19,6 +19,7 @@ const ExpenseDetails = () => {
   const [editMode, setEditMode] = useState(false);
   const [expenseToEdit, setExpenseToEdit] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState('');
+  const [userFullName, setUserFullName] = useState('');
   const navigate = useNavigate();
 
   const calculateTotalExpenses = useCallback((expensesList) => {
@@ -72,6 +73,24 @@ const ExpenseDetails = () => {
     }
   }, []);
 
+  const fetchUserFullName = useCallback(async (userId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/user/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      if (data.success) {
+        const { fname, lname } = data.user;
+        setUserFullName(`${fname} ${lname}`);
+      }
+    } catch (error) {
+      console.error('Error fetching user details', error);
+    }
+  }, []);
+
   const calculateCategoryTotals = useCallback(() => {
     const totals = categories.map((category) => {
       const totalAmount = expenses
@@ -79,7 +98,7 @@ const ExpenseDetails = () => {
         .reduce((sum, expense) => sum + expense.amount, 0);
 
       return {
-        category : category.categoryName,
+        category: category.categoryName,
         categoryLimit: category.amount,
         totalAmount,
         details: expenses.filter((expense) => expense.category === category.categoryName),
@@ -97,7 +116,8 @@ const ExpenseDetails = () => {
     }
     fetchExpenses(userId);
     fetchIncomeAndCategories(userId);
-  }, [navigate, fetchExpenses, fetchIncomeAndCategories]);
+    fetchUserFullName(userId);
+  }, [navigate, fetchExpenses, fetchIncomeAndCategories, fetchUserFullName]);
 
   useEffect(() => {
     if (categories.length > 0 && expenses.length > 0) {
@@ -300,8 +320,7 @@ const ExpenseDetails = () => {
     const doc = new jsPDF();
   
     const userId = localStorage.getItem('userId');
-    const userName = localStorage.getItem('fname');  
-    const reportDate = new Date().toLocaleDateString();
+    const reportDate = new Date().toLocaleDateString('en-GB');
     const monthYear = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
     
     // Add the heading
@@ -310,15 +329,15 @@ const ExpenseDetails = () => {
   
     // Add user information
     doc.setFontSize(12);
-    doc.text(`User ID: ${userId}`, 10, 30);
-    doc.text(`User Name: ${userName || 'N/A'}`, 10, 40);
+    doc.text(`Reference id: ${userId}`, 10, 30);
+    doc.text(`Customer Name: ${userFullName || 'N/A'}`, 10, 40);
     doc.text(`Date: ${reportDate}`, 10, 50);
-    doc.text(`Income: ₹${income}`, 10, 60);
-    doc.text(`Total Expense: ₹${totalExpenses}`, 10, 70);
+    doc.text(`Income: Rs. ${income}`, 10, 60);
+    doc.text(`Total Expense: Rs. ${totalExpenses}`, 10, 70);
   
     // Add Expense Table
     const expenseTable = expenses.map(expense => [
-      new Date(expense.date).toLocaleDateString(), expense.name, expense.category, expense.amount 
+      new Date(expense.date).toLocaleDateString('en-GB'), expense.name, expense.category, expense.amount 
     ]);
   
     doc.autoTable({
@@ -326,7 +345,7 @@ const ExpenseDetails = () => {
       body: expenseTable,
       startY: 80,  // Adjust starting position
       columnStyles: {
-        0: { cellWidth: 41 }, 
+        0: { cellWidth: 43 }, 
         1: { cellWidth: 45 }, 
         2: { cellWidth: 47 }, 
         3: { cellWidth: 47 }, 
@@ -344,7 +363,7 @@ const ExpenseDetails = () => {
       body: categorySummary,
       startY: doc.autoTable.previous.finalY + 10,  // Adjust starting position
       columnStyles: {
-        0: { cellWidth: 41 }, 
+        0: { cellWidth: 43 }, 
         1: { cellWidth: 45 }, 
         2: { cellWidth: 47 }, 
         3: { cellWidth: 47 }, 
@@ -354,10 +373,10 @@ const ExpenseDetails = () => {
   
     // Add available balance at the end
     doc.setFontSize(12);
-    doc.text(`Available Balance: ₹${balance}`, 10, doc.autoTable.previous.finalY + 20);
+    doc.text(`Available Balance: Rs. ${balance}`, 10, doc.autoTable.previous.finalY + 20);
   
     // Save the PDF
-    doc.save(`expense-report-${monthYear}.pdf`);
+    doc.save(`Expense-Report-${monthYear}.pdf`);
   };
   
 
@@ -449,7 +468,7 @@ const ExpenseDetails = () => {
           <tbody>
             {(expenses || []).map((expense, index) => (
               <tr key={index}>
-                <td>{new Date(expense.date).toLocaleDateString()}</td>
+                <td>{new Date(expense.date).toLocaleDateString('en-GB')}</td>
                 <td>{expense.name}</td>
                 <td>{expense.category}</td>
                 <td>{expense.amount}</td>
