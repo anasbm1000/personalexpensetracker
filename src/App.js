@@ -9,6 +9,7 @@ import IncomeAndLimits from './components/IncomeAndLimits';
 import IncomeProfile from './components/IncomeProfile';
 import ExpenseDetails from './components/ExpenseDetails';
 import Customizedmsg from './components/Customizedmsg';
+import ViewCNS from './admin/ViewCNS';
 import './App.css';
 
 const App = () => {
@@ -27,6 +28,7 @@ const App = () => {
           <Route path='/IncomeProfile' element={<IncomeProfile />} />
           <Route path='/ExpenseDetails' element={<ExpenseDetails />} />
           <Route path='/Customizedmsg' element={<Customizedmsg />} />
+          <Route path='/ViewCNS' element={<ViewCNS />} />
         </Routes>
       </Router>
     </main>
