@@ -6,12 +6,13 @@ Xpensia is a full-stack application launched to help users track their income, m
 - User Authentication: Secure login and registration functionality.
 - Budget Categories: Set category-wise budget limits (income, savings, etc.).
 - Expense Management: Add, edit, update and delete expenses.
-- Cutomized alert system: Replaces default alert system to match the UI.
+- Customized alert system: Replaces default alert system to match the UI.
 - Alerts: Get customized alerts at 50%, 75%, 90%, and 100% of income usage.
 - Expense Summary: View a detailed summary of expenses, total income, and remaining balance.
 - Data Visualization: Bar chart representation of expenses.
 - PDF Reports: Generate and download a PDF report of monthly expenses.
 - Expense Reports: Monthly expense report generation.
+- Complaint Registration: Users can register Complaint/Suggestion
 - RESTful API: Backend API to handle all data storage and retrieval via MongoDB.
 
 ## Tech stacks
