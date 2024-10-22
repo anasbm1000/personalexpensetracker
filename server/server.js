@@ -68,8 +68,20 @@ let expensesSchema = new mongoose.Schema({
 
 let Expenses = mongoose.model('Expenses', expensesSchema);
 
-
-const authenticateToken = (req, res, next) => {
+// Complaint/Suggestion Schema
+const complaintSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    nameOfUser: { type: String, required: true },
+    emailOfUser: { type: String, required: true },
+    dateOfSubmission: { type: Date, required: true },
+    submissionType: { type: String, enum: ['Complaint', 'Suggestion'], required: true },
+    description: { type: String, required: true }
+  }, { timestamps: true });
+  
+  const Complaint = mongoose.model('Complaint', complaintSchema);
+  
+  
+  const authenticateToken = (req, res, next) => {
     const token = req.headers['authorization']?.split(' ')[1];
     if (!token) return res.status(401).json({ message: "Unauthorized" });
 
@@ -194,7 +206,7 @@ app.post("/expenses", authenticateToken, async (req, res) => {
 app.get("/expenses/:userId", authenticateToken, async (req, res) => {
     const { userId } = req.params;
     try {
-        const expenses = await Expenses.find({ userId });
+        const expenses = await Expenses.find({ userId }).sort({ date: -1 });
         res.json(expenses);
     } catch (error) {
         res.status(500).json({ message: "Error fetching expenses" });
@@ -266,9 +278,39 @@ app.delete("/expenses/:expenseId", authenticateToken, async (req, res) => {
         res.status(500).json({ message: "Error deleting expense" });
     }
 });
+
+// POST route to submit a complaint/suggestion
+app.post('/complaints', authenticateToken, async (req, res) => {
+    const { userId, nameOfUser, emailOfUser, dateOfSubmission, submissionType, description } = req.body;
   
-
-
+    try {
+      const newComplaint = new Complaint({
+        userId,
+        nameOfUser,
+        emailOfUser,
+        dateOfSubmission,
+        submissionType,
+        description,
+      });
+  
+      await newComplaint.save();
+      res.status(201).json({ success: true, message: 'Complaint/Suggestion submitted' });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Error submitting complaint', error });
+    }
+  });
+  
+  // GET route to retrieve all complaints by user ID
+  app.get('/complaints/:userId', authenticateToken, async (req, res) => {
+    const { userId } = req.params;
+  
+    try {
+        const complaints = await Complaint.find({ userId }).sort({ createdAt: -1 });
+        res.json({ success: true, complaints });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Error fetching complaints', error });
+    }
+  }); 
 
 const PORT = 3010;
 app.listen(PORT, () => 
