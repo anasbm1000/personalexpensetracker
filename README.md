@@ -1,3 +1,38 @@
+# Xpensia - Yours own expense tracker web application
+Xpensia is a full-stack application launched to help users track their income, manage expenses, and monitor budget limits for various categories. The app features functionality for setting budget limits, adding, updating, and deleting expenses, and visualizing data using charts. Alerts notify users when their spending exceeds predefined thresholds, ensuring better financial management.
+
+## Key features
+
+- User Authentication: Secure login and registration functionality.
+- Budget Categories: Set category-wise budget limits (income, savings, etc.).
+- Expense Management: Add, edit, update and delete expenses.
+- Customized alert system: Replaces default alert system to match the UI.
+- Alerts: Get customized alerts at 50%, 75%, 90%, and 100% of income usage.
+- Expense Summary: View a detailed summary of expenses, total income, and remaining balance.
+- Data Visualization: Bar chart representation of expenses.
+- PDF Reports: Generate and download a PDF report of monthly expenses.
+- Expense Reports: Monthly expense report generation.
+- Complaint Registration: Users can register Complaint/Suggestion
+- RESTful API: Backend API to handle all data storage and retrieval via MongoDB.
+
+## Tech stacks
+- Frontend: React.js
+- Backend: Node.js, Express.js
+- Database: MongoDB (with Mongoose for schema modeling)
+- Charts: Recharts
+- PDF Generation: jsPDF
+
+## Future Enhancements
+
+- Implement recurring expenses.
+- Add pie chart visualization for category-wise expense distribution.
+- Implement push notifications for income usage alerts.
+
+## Acknowledgments
+
+- Special thanks to the developers of React, NodeJS, ExpressJS, and MongoDB for the amazing tools that make this project possible.
+
+
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
